@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>警察抓小偷 - 力扣打字赛</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none; 
+        }
+        .game-title {
+            font-family: 'Press Start 2P', cursive;
+        }
+        #code-to-type {
+            font-family: 'monospace'; 
+            white-space: pre-wrap;    
+            word-break: break-all;    
+            max-height: 35vh; 
+            overflow-y: auto;         
+            border: 1px solid #e5e7eb; 
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f9fafb; 
+            line-height: 1.6;
+            color: #374151; 
+        }
+        .correct-char {
+            color: #10b981; 
+            font-weight: bold;
+        }
+        .current-char-highlight {
+            background-color: #93c5fd; 
+            padding: 0.1em 0;
+            border-radius: 0.1em;
+        }
+        .message {
+            min-height: 2.5em; 
+        }
+        .game-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .game-button:active {
+            transform: translateY(0px);
+        }
+        .start-button {
+            background-color: #3b82f6; 
+            color: white;
+        }
+        .start-button:hover {
+            background-color: #2563eb;
+        }
+        .restart-button {
+            background-color: #10b981; 
+            color: white;
+        }
+        .restart-button:hover {
+            background-color: #059669;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        /* Animation Area Styles */
+        #chase-scene {
+            position: relative;
+            width: 100%;
+            height: 6rem; 
+            background-color: #6b7280; 
+            border-radius: 0.375rem; 
+            overflow: hidden;
+            margin-bottom: 1rem; 
+            border: 1px solid #4b5563; 
+        }
+        .sprite {
+            position: absolute;
+            width: 3rem; /* Fixed width for emoji consistency */
+            height: 3rem; 
+            font-size: 2.25rem; /* Adjusted font size for emojis */
+            line-height: 3rem; 
+            text-align: center;
+            top: 50%;
+            transform: translateY(-50%);
+            transition-property: left; 
+        }
+        #thief-sprite {
+            transition-duration: 0.2s; 
+            transition-timing-function: linear;
+        }
+        #police-sprite {
+            transition-duration: 0.15s; /* Police can move a bit faster visually when they do move */
+            transition-timing-function: ease-out;
+        }
+
+        .shake {
+            animation: shake-horizontal 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake-horizontal {
+          0%, 100% { transform: translateY(-50%) translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateY(-50%) translateX(-4px); } 
+          20%, 40%, 60%, 80% { transform: translateY(-50%) translateX(4px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-2xl text-center">
+        <h1 class="game-title text-3xl sm:text-4xl font-bold mb-6 text-yellow-400">警察抓小偷</h1>
+        <p class="text-lg mb-2 text-blue-300">力扣打字赛</p>
+
+        <div id="chase-scene">
+            <div id="thief-sprite" class="sprite">🏃</div> 
+            <div id="police-sprite" class="sprite">🚓</div> 
+        </div>
+
+        <div id="problem-title" class="text-xl font-semibold mb-4 text-gray-300 h-8">准备好了吗？</div>
+
+        <div id="code-to-type" class="mb-6 text-left text-sm sm:text-base bg-gray-100 border-gray-300 text-gray-800">
+            点击“开始游戏”按钮开始。
+        </div>
+
+        <div id="timer" class="text-lg font-medium mb-4 text-red-400">时间：--</div>
+        <div id="message" class="message text-xl font-bold mb-6 h-8"></div>
+        <button id="start-button" class="game-button start-button w-full sm:w-auto">
+            开始游戏
+        </button>
+    </div>
+
+    <script>
+        // --- Game Configuration ---
+        const problems = [
+            // ... (Problem definitions remain the same) ...
+            {
+                title: "LeetCode 1: 两数之和 (Two Sum)",
+                solution: `class Solution:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
+        # Create a hash map to store numbers and their indices
+        num_map = {}
+        # Iterate through the list of numbers
+        for index, num in enumerate(nums):
+            # Calculate the complement needed to reach the target
+            complement = target - num
+            # If the complement is in the hash map, we found the pair
+            if complement in num_map:
+                return [num_map[complement], index]
+            # Otherwise, store the current number and its index
+            num_map[num] = index
+        # If no solution is found, return an empty list (or raise an error)
+        return []`
+            },
+            {
+                title: "LeetCode 7: 整数反转 (Reverse Integer)",
+                solution: `class Solution:
+    def reverse(self, x: int) -> int:
+        # Handle the sign of the number
+        sign = -1 if x < 0 else 1
+        x_abs = abs(x)
+        
+        reversed_x_abs = 0
+        while x_abs > 0:
+            # Get the last digit
+            digit = x_abs % 10
+            # Append the digit to the reversed number
+            reversed_x_abs = reversed_x_abs * 10 + digit
+            # Remove the last digit from the original number
+            x_abs //= 10
+            
+        reversed_x = sign * reversed_x_abs
+        
+        # Check for 32-bit integer overflow
+        if reversed_x < -2**31 or reversed_x > 2**31 - 1:
+            return 0
+            
+        return reversed_x`
+            },
+            {
+                title: "LeetCode 9: 回文数 (Palindrome Number)",
+                solution: `class Solution:
+    def isPalindrome(self, x: int) -> bool:
+        # Negative numbers and numbers ending in 0 (but not 0 itself) are not palindromes
+        if x < 0 or (x % 10 == 0 and x != 0):
+            return False
+
+        reverted_number = 0
+        # Reverse the second half of the number
+        while x > reverted_number:
+            reverted_number = reverted_number * 10 + x % 10
+            x //= 10
+        
+        # For odd length numbers, the middle digit doesn't matter.
+        return x == reverted_number or x == reverted_number // 10`
+            },
+            {
+                title: "LeetCode 20: 有效的括号 (Valid Parentheses)",
+                solution: `class Solution:
+    def isValid(self, s: str) -> bool:
+        # Use a stack to check for matching parentheses
+        stack = []
+        # Define a mapping for opening and closing brackets
+        mapping = {")": "(", "}": "{", "]": "["}
+
+        for char in s:
+            # If it's a closing bracket
+            if char in mapping:
+                top_element = stack.pop() if stack else '#'
+                if mapping[char] != top_element:
+                    return False
+            else:
+                # It's an opening bracket, push to stack
+                stack.append(char)
+        return not stack`
+            }
+        ];
+
+        // --- DOM Elements ---
+        const problemTitleEl = document.getElementById('problem-title');
+        const codeToTypeEl = document.getElementById('code-to-type');
+        const timerEl = document.getElementById('timer');
+        const messageEl = document.getElementById('message');
+        const startButton = document.getElementById('start-button');
+        const policeSpriteEl = document.getElementById('police-sprite');
+        const thiefSpriteEl = document.getElementById('thief-sprite');
+
+        // --- Game State Variables ---
+        let currentProblemIndex = 0;
+        let currentProblem = {};
+        let solutionText = '';
+        let typedIndex = 0;
+        let timeLeft = 0;
+        let timerInterval = null;
+        let gameActive = false;
+        let isComposingText = false;
+
+        // --- Animation State Variables ---
+        let policeCalculatedPos = 0; // Theoretical progress of police based on typing
+        let policeVisualPos = 0;     // Actual displayed CSS 'left' % for police
+        let thiefPos = 0;            // Displayed CSS 'left' % for thief
+        let thiefInterval = null;
+        let initialTimeForProblem = 0;
+
+        const TRACK_START_PERCENT = 0; 
+        const THIEF_HEADSTART_PERCENT = 5; 
+        const TRACK_WIDTH_PERCENT = 85; 
+        const POLICE_TARGET_EXTRA_PERCENT = 10; 
+        const MAX_SPRITE_POS_PERCENT = 90; // Max visual position to prevent going off edge
+        const VISUAL_GAP_BEHIND_THIEF = 2; // Police visually stays this much % behind thief if ahead by calculation
+
+
+        // --- Helper Functions ---
+        function indicateMistake() {
+            if (!gameActive) return;
+            const currentCharEl = codeToTypeEl.querySelector('.current-char-highlight');
+            if (currentCharEl) {
+                currentCharEl.style.transition = 'background-color 0.1s ease-in-out';
+                currentCharEl.style.backgroundColor = '#fca5a5'; 
+                setTimeout(() => {
+                    if (gameActive && codeToTypeEl.contains(currentCharEl) &&
+                        (typedIndex < solutionText.length && codeToTypeEl.children[typedIndex] === currentCharEl)) {
+                        currentCharEl.style.backgroundColor = '#93c5fd'; 
+                    } else if (currentCharEl && gameActive) { 
+                        currentCharEl.style.backgroundColor = ''; 
+                    }
+                }, 200);
+            }
+        }
+        
+        /**
+         * Updates the CSS 'left' property for both sprites based on their current visual positions.
+         */
+        function updateSpriteDisplay() {
+            if (!policeSpriteEl || !thiefSpriteEl) return;
+            policeSpriteEl.style.left = Math.min(policeVisualPos, MAX_SPRITE_POS_PERCENT) + '%';
+            thiefSpriteEl.style.left = Math.min(thiefPos, MAX_SPRITE_POS_PERCENT) + '%';
+        }
+        
+        // This function is for observation or potential future visual effects, does NOT end the game.
+        function checkCatch() {
+            // if (gameActive && policeVisualPos >= thiefPos - VISUAL_GAP_BEHIND_THIEF) {
+            //     console.log("Police is close!");
+            // }
+        }
+
+        // --- Game Functions ---
+        function startGame() {
+            gameActive = true;
+            isComposingText = false; 
+            messageEl.textContent = ''; 
+            startButton.textContent = '游戏中...';
+            startButton.disabled = true;
+            startButton.classList.remove('start-button', 'restart-button');
+            startButton.classList.add('bg-gray-500', 'cursor-not-allowed');
+
+            selectProblem();
+            renderCode();
+
+            timeLeft = Math.max(30, Math.floor(solutionText.length * 0.65)); 
+            initialTimeForProblem = timeLeft; 
+            updateTimerDisplay();
+            startTimerInterval();
+
+            // Animation Reset
+            policeCalculatedPos = TRACK_START_PERCENT;
+            policeVisualPos = TRACK_START_PERCENT;
+            thiefPos = THIEF_HEADSTART_PERCENT;
+            
+            if (policeSpriteEl) policeSpriteEl.textContent = '🚓'; 
+            if (thiefSpriteEl) thiefSpriteEl.textContent = '🏃'; 
+            updateSpriteDisplay(); // Update display based on new positions
+            
+            clearInterval(thiefInterval);
+            thiefInterval = setInterval(() => {
+                if (!gameActive) {
+                    clearInterval(thiefInterval);
+                    return;
+                }
+                let timeElapsed = initialTimeForProblem - timeLeft;
+                let progressFraction = Math.min(timeElapsed / initialTimeForProblem, 1); 
+                thiefPos = THIEF_HEADSTART_PERCENT + (progressFraction * TRACK_WIDTH_PERCENT);
+                thiefPos = Math.min(thiefPos, THIEF_HEADSTART_PERCENT + TRACK_WIDTH_PERCENT); 
+                
+                // Thief's CSS is updated directly. Police visual position is only updated on player input.
+                if (thiefSpriteEl) thiefSpriteEl.style.left = Math.min(thiefPos, MAX_SPRITE_POS_PERCENT) + '%';
+                
+                // If police was visually capped by thief, and thief moves, police visual does NOT auto-adjust here.
+                // It only adjusts when player types correctly.
+                checkCatch(); 
+            }, 100); 
+
+            window.focus();
+        }
+
+        function selectProblem() {
+            currentProblem = problems[currentProblemIndex];
+            solutionText = currentProblem.solution;
+            problemTitleEl.textContent = currentProblem.title; 
+            typedIndex = 0;
+            currentProblemIndex = (currentProblemIndex + 1) % problems.length;
+        }
+
+        function renderCode() {
+            codeToTypeEl.innerHTML = ''; 
+            for (let i = 0; i < solutionText.length; i++) {
+                const charSpan = document.createElement('span');
+                charSpan.textContent = solutionText[i];
+                if (i < typedIndex) {
+                    charSpan.classList.add('correct-char');
+                } else if (i === typedIndex) {
+                    charSpan.classList.add('current-char-highlight');
+                }
+                codeToTypeEl.appendChild(charSpan);
+            }
+            const currentHighlight = codeToTypeEl.querySelector('.current-char-highlight');
+            if (currentHighlight) {
+                currentHighlight.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+            }
+        }
+
+        function updateTimerDisplay() {
+            timerEl.textContent = `时间：${timeLeft}秒`;
+        }
+
+        function startTimerInterval() {
+            clearInterval(timerInterval); 
+            timerInterval = setInterval(() => {
+                if (!gameActive) { 
+                    clearInterval(timerInterval);
+                    return;
+                }
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    if (gameActive) { 
+                        endGame(false); 
+                    }
+                }
+            }, 1000);
+        }
+
+        function endGame(isWin) {
+            if (!gameActive && messageEl.textContent.includes("抓住了") && !isWin) return;
+            if (!gameActive && messageEl.textContent.includes("抓住了") && isWin) return;
+            if (!gameActive && messageEl.textContent.includes("跑了") && isWin) return;
+
+            gameActive = false; 
+            clearInterval(timerInterval);
+            clearInterval(thiefInterval);
+
+            if (isWin) {
+                messageEl.textContent = '🎉 恭喜！小偷抓住了！ 🎉';
+                messageEl.className = 'message text-xl font-bold mb-6 text-green-400 h-8';
+                problemTitleEl.textContent = "太棒了！";
+                if (thiefSpriteEl) thiefSpriteEl.textContent = '😫'; 
+                if (policeSpriteEl) policeSpriteEl.textContent = '👮‍♂️'; 
+                
+                // On win, police visually catches up fully.
+                policeCalculatedPos = TRACK_START_PERCENT + (TRACK_WIDTH_PERCENT + POLICE_TARGET_EXTRA_PERCENT); // Ensure police calculated pos is at max
+                policeVisualPos = Math.min(thiefPos + 1, MAX_SPRITE_POS_PERCENT); // Place police right at/past thief
+                thiefPos = Math.min(thiefPos, policeVisualPos -1 ); // Thief just behind/at police
+            } else { 
+                if (!messageEl.textContent.includes("抓住了")) { 
+                    messageEl.textContent = '⌛ 时间到了！小偷跑了！ ⌛';
+                    messageEl.className = 'message text-xl font-bold mb-6 text-red-400 h-8';
+                    problemTitleEl.textContent = "再接再厉！";
+                    renderFullSolutionWithErrors();
+                    if (thiefSpriteEl) thiefSpriteEl.textContent = '💨'; 
+                    if (policeSpriteEl) policeSpriteEl.textContent = '😥'; 
+                    thiefPos = THIEF_HEADSTART_PERCENT + TRACK_WIDTH_PERCENT; // Thief escapes
+                    // policeVisualPos remains where it was when time ran out.
+                }
+            }
+            updateSpriteDisplay(); 
+
+            startButton.textContent = '再玩一次?';
+            startButton.disabled = false;
+            startButton.classList.remove('bg-gray-500', 'cursor-not-allowed');
+            startButton.classList.add('restart-button');
+        }
+        
+        function renderFullSolutionWithErrors() {
+            codeToTypeEl.innerHTML = ''; 
+            for (let i = 0; i < solutionText.length; i++) {
+                const charSpan = document.createElement('span');
+                charSpan.textContent = solutionText[i];
+                if (i < typedIndex) {
+                    charSpan.classList.add('correct-char');
+                }
+                codeToTypeEl.appendChild(charSpan);
+            }
+        }
+
+        // --- Event Listeners ---
+        startButton.addEventListener('click', startGame);
+
+        document.addEventListener('compositionstart', () => {
+            if (!gameActive) return;
+            isComposingText = true;
+        });
+
+        document.addEventListener('compositionend', (event) => {
+            if (!gameActive) return;
+            isComposingText = false; 
+
+            const composedText = event.data; 
+            if (composedText) { 
+                let compositionMatchedAll = true;
+                for (let k = 0; k < composedText.length; k++) {
+                    const charFromComposition = composedText[k];
+                    if (typedIndex < solutionText.length && charFromComposition === solutionText[typedIndex]) {
+                        typedIndex++;
+                        // Update police's calculated position
+                        let policeTargetProgress = (typedIndex / solutionText.length);
+                        policeCalculatedPos = TRACK_START_PERCENT + (policeTargetProgress * (TRACK_WIDTH_PERCENT + POLICE_TARGET_EXTRA_PERCENT));
+                    } else {
+                        indicateMistake();
+                        if(policeSpriteEl) policeSpriteEl.classList.add('shake');
+                        setTimeout(() => { if(gameActive && policeSpriteEl) policeSpriteEl.classList.remove('shake'); }, 300);
+                        compositionMatchedAll = false;
+                        break; 
+                    }
+                }
+
+                if (compositionMatchedAll) { // Only if all composed chars were correct
+                    // Determine new visual position for police
+                    policeVisualPos = policeCalculatedPos; // Start with true progress
+                    if (gameActive && typedIndex < solutionText.length) { // Still in active chase
+                        if (policeCalculatedPos > (thiefPos - VISUAL_GAP_BEHIND_THIEF)) { 
+                            policeVisualPos = Math.max(TRACK_START_PERCENT, thiefPos - VISUAL_GAP_BEHIND_THIEF); 
+                        }
+                    }
+                }
+                renderCode(); 
+                updateSpriteDisplay(); 
+                checkCatch();
+
+                if (compositionMatchedAll && typedIndex === solutionText.length) {
+                    if (gameActive && !messageEl.textContent.includes("抓住了")) {
+                         endGame(true); 
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (!gameActive || isComposingText) { 
+                return;
+            }
+
+            const typedKey = event.key;
+            let correctKeyTyped = false;
+
+            if (typedKey === "Tab") {
+                event.preventDefault(); 
+                if (typedIndex + 3 < solutionText.length &&
+                    solutionText[typedIndex] === ' ' && solutionText[typedIndex + 1] === ' ' &&
+                    solutionText[typedIndex + 2] === ' ' && solutionText[typedIndex + 3] === ' ') {
+                    typedIndex += 4; 
+                    correctKeyTyped = true;
+                } else if (typedIndex < solutionText.length && solutionText[typedIndex] === '\t') { 
+                    typedIndex++;
+                    correctKeyTyped = true;
+                } else {
+                    indicateMistake();
+                    if(policeSpriteEl) policeSpriteEl.classList.add('shake');
+                    setTimeout(() => { if(gameActive && policeSpriteEl) policeSpriteEl.classList.remove('shake'); }, 300);
+                }
+            } else if (typedKey === "Enter") {
+                if (typedIndex < solutionText.length && solutionText[typedIndex] === "\n") {
+                    typedIndex++;
+                    correctKeyTyped = true;
+                } else {
+                    indicateMistake();
+                    if(policeSpriteEl) policeSpriteEl.classList.add('shake');
+                    setTimeout(() => { if(gameActive && policeSpriteEl) policeSpriteEl.classList.remove('shake'); }, 300);
+                }
+            } else if (typedKey.length === 1) { 
+                if (typedIndex < solutionText.length && typedKey === solutionText[typedIndex]) {
+                    typedIndex++;
+                    correctKeyTyped = true;
+                } else {
+                    indicateMistake();
+                    if(policeSpriteEl) policeSpriteEl.classList.add('shake');
+                    setTimeout(() => { if(gameActive && policeSpriteEl) policeSpriteEl.classList.remove('shake'); }, 300);
+                }
+            } else if (
+                typedKey === "Shift" || typedKey === "Control" || typedKey === "Alt" ||
+                typedKey === "Meta" || typedKey === "CapsLock" || typedKey === "Escape" ||
+                (typedKey.startsWith("F") && (typedKey.length === 2 || typedKey.length === 3)) || 
+                typedKey.startsWith("Arrow") || typedKey === "Backspace" || typedKey === "Process" 
+            ) {
+                return; 
+            } else { 
+                 if(policeSpriteEl) policeSpriteEl.classList.add('shake');
+                 setTimeout(() => { if(gameActive && policeSpriteEl) policeSpriteEl.classList.remove('shake'); }, 300);
+            }
+
+            if (correctKeyTyped) {
+                // Update police's calculated position
+                let policeTargetProgress = (typedIndex / solutionText.length); 
+                policeCalculatedPos = TRACK_START_PERCENT + (policeTargetProgress * (TRACK_WIDTH_PERCENT + POLICE_TARGET_EXTRA_PERCENT));
+                
+                // Determine new visual position for police
+                policeVisualPos = policeCalculatedPos; // Start with true progress
+                if (gameActive && typedIndex < solutionText.length) { // Still in active chase
+                    if (policeCalculatedPos > (thiefPos - VISUAL_GAP_BEHIND_THIEF)) { 
+                        policeVisualPos = Math.max(TRACK_START_PERCENT, thiefPos - VISUAL_GAP_BEHIND_THIEF); 
+                    }
+                }
+                
+                renderCode();
+                updateSpriteDisplay(); // Update CSS for both sprites
+                checkCatch();
+
+                if (typedIndex === solutionText.length) {
+                     if (gameActive && !messageEl.textContent.includes("抓住了")) {
+                        endGame(true); 
+                     }
+                }
+            }
+        });
+
+        // Initial setup message
+        problemTitleEl.textContent = '准备好了吗？';
+        codeToTypeEl.textContent = '点击“开始游戏”按钮开始。';
+        timerEl.textContent = '时间：--';
+        if (policeSpriteEl && !policeSpriteEl.textContent) policeSpriteEl.textContent = '🚓';
+        if (thiefSpriteEl && !thiefSpriteEl.textContent) thiefSpriteEl.textContent = '🏃';
+        updateSpriteDisplay(); 
+
+    </script>
+
+</body>
+</html>
