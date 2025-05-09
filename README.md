@@ -1,2 +1,0 @@
-# leetcode_typing_game
-leetcode_typing_game
